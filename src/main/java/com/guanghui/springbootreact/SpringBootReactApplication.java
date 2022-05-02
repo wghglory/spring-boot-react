@@ -1,13 +1,13 @@
 package com.guanghui.springbootreact;
 
-import com.guanghui.springbootreact.course.Course;
-import com.guanghui.springbootreact.course.CourseRepository;
-import com.guanghui.springbootreact.domain.Car;
-import com.guanghui.springbootreact.domain.CarRepository;
-import com.guanghui.springbootreact.domain.Owner;
-import com.guanghui.springbootreact.domain.OwnerRepository;
-import com.guanghui.springbootreact.stutent.Student;
-import com.guanghui.springbootreact.stutent.StudentRepository;
+import com.guanghui.springbootreact.entity.Car;
+import com.guanghui.springbootreact.entity.Course;
+import com.guanghui.springbootreact.entity.Owner;
+import com.guanghui.springbootreact.entity.Student;
+import com.guanghui.springbootreact.repository.CarRepository;
+import com.guanghui.springbootreact.repository.CourseRepository;
+import com.guanghui.springbootreact.repository.OwnerRepository;
+import com.guanghui.springbootreact.repository.StudentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,7 +49,7 @@ public class SpringBootReactApplication implements CommandLineRunner {
 
         for (Car car : carRepository.findAll()) {
 //        TODO:    Owner owner = car.getOwner();
-//            Method threw 'org.hibernate.LazyInitializationException' exception. Cannot evaluate com.guanghui.springbootreact.domain.Car.toString()
+//            Method threw 'org.hibernate.LazyInitializationException' exception. Cannot evaluate com.guanghui.springbootreact.entity.Car.toString()
             logger.info(car.getBrand() + " / " + car.getModel() + " / " + car.getYear());
         }
 

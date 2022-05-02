@@ -34,5 +34,4 @@ dependencies {
 
 ## TODO
 
-- [] separate car owner from domain package
 - [] how to save N:N mapping table, e.g. course_student?

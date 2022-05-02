@@ -1,4 +1,4 @@
-package com.guanghui.springbootreact.domain;
+package com.guanghui.springbootreact.entity;
 
 import lombok.*;
 

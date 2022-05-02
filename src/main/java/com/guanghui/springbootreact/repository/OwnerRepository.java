@@ -1,5 +1,6 @@
-package com.guanghui.springbootreact.domain;
+package com.guanghui.springbootreact.repository;
 
+import com.guanghui.springbootreact.entity.Owner;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

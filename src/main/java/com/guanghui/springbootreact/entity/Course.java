@@ -1,6 +1,5 @@
-package com.guanghui.springbootreact.course;
+package com.guanghui.springbootreact.entity;
 
-import com.guanghui.springbootreact.stutent.Student;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
