@@ -45,3 +45,28 @@ This means when cars get owners, at the owners place, stop fetching cars. So the
   }
 }
 ```
+
+## spring-boot-starter-data-rest
+
+This dep will search all repositories. No need to create service and controller.
+
+At application.yml set basePath:
+
+```yml
+#  dep: spring-boot-starter-data-rest
+data:
+  rest:
+    base-path: /api/v1
+```
+
+At Repository, add below: `@RepositoryRestResource` and `@Param`
+
+```java
+
+@RepositoryRestResource // spring-boot-starter-data-rest
+public interface CarRepository extends JpaRepository<Car, Long> {
+    // spring-boot-starter-data-rest needs @Param then, we can search by
+    // http://localhost:8081/api/v1/cars/search/findByBrand?brand=Toyota
+    List<Car> findByBrand(@Param("brand") String brand);
+}
+```
