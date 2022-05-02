@@ -29,8 +29,10 @@ dependencies {
 
 ## Assumptions
 
-Car to Owner: N to 1
+- Car to Owner: N to 1
+- Student to Course: N to N
 
 ## TODO
 
 - [] separate car owner from domain package
+- [] how to save N:N mapping table, e.g. course_student?
