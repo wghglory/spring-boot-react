@@ -5,10 +5,7 @@ package com.guanghui.springbootreact;
 //import com.guanghui.springbootreact.entity.Owner;
 //import com.guanghui.springbootreact.entity.Student;
 
-import com.guanghui.springbootreact.repository.CarRepository;
-import com.guanghui.springbootreact.repository.CourseRepository;
-import com.guanghui.springbootreact.repository.OwnerRepository;
-import com.guanghui.springbootreact.repository.StudentRepository;
+import com.guanghui.springbootreact.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,12 +31,30 @@ public class SpringBootReactApplication implements CommandLineRunner {
     @Autowired
     private StudentRepository studentRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
     public static void main(String[] args) {
         SpringApplication.run(SpringBootReactApplication.class, args);
     }
 
     @Override
     public void run(String... args) throws Exception {
+        /* mock generate 2 test users in db
+        // password generator: http://www.alekssoft.net/hash-generators/bcrypt
+        $2a represents the algorithm version and $10 represents the strength of the algorithm.
+        The default strength of Spring Security's BcryptPasswordEncoder class is 10.
+        BCrypt generates a random salt in hashing, therefore the hashed result is always different.
+
+        // password: ca$hc0w
+        User user1 = User.builder().username("derekw").password("$2y$10$aV1hn/tML9Et6EwEjMIC5OYMobdE48LSd1YuscPwvMwUIfTo75fQq").role("ADMIN").build();
+        // password: what?
+        User user2 = User.builder().username("irisy").password("$2y$10$iwBVpCitr9d71j3bBbpUgO260sCJ4hnP1YRaN/gcm6Imc0Vcs5Pby").role("USER").build();
+
+        userRepository.save(user1);
+        userRepository.save(user2);
+        */
+
 //        Owner owner1 = Owner.builder().firstName("Derek").lastName("Wang").build();
 //        Owner owner2 = Owner.builder().firstName("Iris").lastName("Yuan").build();
 //        ownerRepository.saveAll(Arrays.asList(owner1, owner2));
