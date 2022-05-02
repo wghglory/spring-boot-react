@@ -4,6 +4,8 @@ Learn from https://github.com/PacktPublishing/Full-Stack-Development-with-Spring
 
 Initial packages:
 
+`spring-boot-devtools` helps to restart the server for classpath changes.
+
 ```
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -16,3 +18,11 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 ```
+
+## IDE Configurations
+
+![actions on save](./screenshots/actions_on_save.png)
+
+![auto build](./screenshots/auto_build.png)
+
+![compiler auto](./screenshots/compiler_auto.png)
