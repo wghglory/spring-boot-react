@@ -173,3 +173,178 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsername(String username);
 }
 ```
+
+### JWT Authentication
+
+3 parts, separated by dots: xxxxx.yyyyy.zzzzz.
+
+- The first part (xxxxx) is the header that defines the type of the token and the
+  hashing algorithm.
+- The second part (yyyyy) is the payload that, typically, in the case of authentication,
+  contains user information.
+- The third part (zzzzz) is the signature that is used to verify that the token hasn't
+  been changed along the way.
+
+Add packages:
+
+```
+implementation'io.jsonwebtoken:jjwt-api:0.11.2'
+implementation'io.jsonwebtoken:jjwt-impl:0.11.2'
+implementation'io.jsonwebtoken:jjwt-jackson:0.11.2'
+```
+
+SecurityConfig.java:
+
+1. add getAuthenticationManager Bean which will be used in `AuthController`.
+2. configures which APIs should be authenticated.
+
+```java
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+    @Autowired
+    private UserDetailsService userDetailsService;
+
+    @Autowired
+    //  Hash user typed raw password by algorithm, and then compare the result with db password.
+    public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
+        auth.userDetailsService(userDetailsService).passwordEncoder(new BCryptPasswordEncoder());
+    }
+
+    @Bean
+    public AuthenticationManager getAuthenticationManager() throws Exception {
+        return authenticationManager();
+    }
+
+    @Override
+    /*
+     * 1. defines which paths are secured and which are not secured.
+     * e.g. /api/v1/login is allowed without authentication and all other endpoints require.
+     * 2. since use jwt, never create a session
+     * 3. disable csrf
+     */
+    protected void configure(HttpSecurity http) throws Exception {
+        http.csrf().disable().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                .authorizeHttpRequests()
+                .antMatchers(HttpMethod.POST, "/api/v1/login")
+                .permitAll()
+                .anyRequest().authenticated();
+    }
+}
+```
+
+JwtServiceImpl.java: generate token by username, validate token for further requests.
+
+```java
+package com.guanghui.springbootreact.service;
+
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.http.HttpHeaders;
+import org.springframework.stereotype.Service;
+
+import javax.servlet.http.HttpServletRequest;
+import java.security.Key;
+import java.util.Date;
+
+@Service
+public class JwtServiceImpl {
+    static final Integer EXPIRATION_TIME = 86400000; // 1 DAY in ms
+
+    static final String PREFIX = "Bearer";
+
+    // generate secret key. We should read it from Application configuration
+    static final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+
+    /**
+     * generate signed JWT token based on username
+     *
+     * @param username
+     * @return token
+     */
+    public String generateToken(String username) {
+
+        return Jwts.builder().setSubject(username)
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .signWith(key)
+                .compact();
+    }
+
+    /**
+     * verify a token and get username from request Authorization header
+     *
+     * @param request
+     * @return username
+     */
+    public String getAuthUser(HttpServletRequest request) {
+        String token = request.getHeader(HttpHeaders.AUTHORIZATION);
+
+        if (token != null) {
+            String user = Jwts.parserBuilder()
+                    .setSigningKey(key).build()
+                    .parseClaimsJwt(token.replace(PREFIX, ""))
+                    .getBody()
+                    .getSubject();
+
+            return user;
+        }
+
+        return null;
+    }
+}
+```
+
+AuthController.java: login success will respond token in Authorization header.
+
+```java
+package com.guanghui.springbootreact.controller;
+
+import com.guanghui.springbootreact.model.AccountCredentials;
+import com.guanghui.springbootreact.service.JwtServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class AuthController {
+    @Autowired
+    AuthenticationManager authenticationManager;  // config it at SecurityConfig
+
+    @Autowired
+    private JwtServiceImpl jwtService;
+
+    @PostMapping("/api/v1/login")
+    public ResponseEntity<?> getToken(@RequestBody AccountCredentials credentials) {
+
+        UsernamePasswordAuthenticationToken creds = new UsernamePasswordAuthenticationToken(credentials.getUsername(), credentials.getPassword());
+
+        Authentication auth = authenticationManager.authenticate(creds);
+
+        // generate token
+        String jwt = jwtService.generateToken(auth.getName());
+
+        // build response with generated token
+        return ResponseEntity.ok().header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+                .header(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, "Authorization")
+                .build();
+    }
+}
+```
+
+Let's verify from postman: http://localhost:8081/api/v1/login with `{"username": "guanghuiw", "password": "123123"}`.
+
+---
+
+Since we have logged in, now we move on to handle authentication in the incoming requests which should send
+Authorization header, where the token should be verified. In the authentication process, we are using filters that allow
+us to perform some operations before a request goes to the controller or before a response is sent to a client. 
+

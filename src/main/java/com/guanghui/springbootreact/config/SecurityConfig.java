@@ -1,10 +1,15 @@
 package com.guanghui.springbootreact.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
@@ -20,11 +25,27 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         auth.userDetailsService(userDetailsService).passwordEncoder(new BCryptPasswordEncoder());
     }
 
-//    @Override
-//    // we can define which endpoints in our application are secure and which are not.
-//    // We don't actually need this method yet because we can use the default settings where all the endpoints are secured
-//    protected void configure(HttpSecurity http) throws Exception {
-//    }
+    @Bean
+    // Will be injected, @AutoWired in AuthController
+    public AuthenticationManager getAuthenticationManager() throws Exception {
+        return authenticationManager();
+    }
+
+    @Override
+    /*
+     * 1. defines which paths are secured and which are not secured.
+     * e.g. /api/v1/login is allowed without authentication and all other endpoints require.
+     * 2. since use jwt, never create a session
+     * 3. disable csrf
+     */
+    protected void configure(HttpSecurity http) throws Exception {
+        http.csrf().disable().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                .authorizeHttpRequests()
+                .antMatchers(HttpMethod.POST, "/api/v1/login")
+                .permitAll()
+                .anyRequest().authenticated();
+    }
 
 //    // For dev test purpose: add in-memory users
 //    // With this, we already logged in via this user.
