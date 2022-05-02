@@ -26,3 +26,11 @@ dependencies {
 ![auto build](./screenshots/auto_build.png)
 
 ![compiler auto](./screenshots/compiler_auto.png)
+
+## Assumptions
+
+Car to Owner: N to 1
+
+## TODO
+
+- [] separate car owner from domain package
