@@ -1,7 +1,7 @@
 package com.guanghui.springbootreact.controller;
 
 import com.guanghui.springbootreact.model.AccountCredentials;
-import com.guanghui.springbootreact.service.JwtServiceImpl;
+import com.guanghui.springbootreact.security.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -15,10 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class AuthController {
     @Autowired
-    AuthenticationManager authenticationManager;  // config it at SecurityConfig
+    private AuthenticationManager authenticationManager;  // config it at SecurityConfig
 
     @Autowired
-    private JwtServiceImpl jwtService;
+    private JwtService jwtService;
 
     @PostMapping("/api/v1/login")
     public ResponseEntity<?> getToken(@RequestBody AccountCredentials credentials) {

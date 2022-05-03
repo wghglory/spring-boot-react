@@ -1,4 +1,4 @@
-package com.guanghui.springbootreact.service;
+package com.guanghui.springbootreact.security;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -11,7 +11,7 @@ import java.security.Key;
 import java.util.Date;
 
 @Service
-public class JwtServiceImpl {
+public class JwtService {
     static final Integer EXPIRATION_TIME = 86400000; // 1 DAY in ms
 
     static final String PREFIX = "Bearer";
@@ -22,7 +22,7 @@ public class JwtServiceImpl {
     /**
      * generate signed JWT token based on username
      *
-     * @param username
+     * @param username given username
      * @return token
      */
     public String generateToken(String username) {
@@ -36,16 +36,17 @@ public class JwtServiceImpl {
     /**
      * verify a token and get username from request Authorization header
      *
-     * @param request
+     * @param request HttpRequest
      * @return username
      */
-    public String getAuthUser(HttpServletRequest request) {
+    public String validateTokenAndReturnUser(HttpServletRequest request) {
         String token = request.getHeader(HttpHeaders.AUTHORIZATION);
 
         if (token != null) {
             String user = Jwts.parserBuilder()
                     .setSigningKey(key).build()
-                    .parseClaimsJwt(token.replace(PREFIX, ""))
+                    // NOT.parseClaimsJwt()!!!
+                    .parseClaimsJws(token.replace(PREFIX, ""))
                     .getBody()
                     .getSubject();
 

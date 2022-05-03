@@ -1,4 +1,4 @@
-package com.guanghui.springbootreact.service;
+package com.guanghui.springbootreact.security;
 
 import com.guanghui.springbootreact.entity.User;
 import com.guanghui.springbootreact.repository.UserRepository;
@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
+/**
+ * Used for Basic Authentication
+ */
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
     @Autowired

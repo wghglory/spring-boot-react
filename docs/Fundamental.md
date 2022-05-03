@@ -204,7 +204,7 @@ SecurityConfig.java:
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
-    private UserDetailsService userDetailsService;
+    private UserDetailsServiceImpl userDetailsService;
 
     @Autowired
     //  Hash user typed raw password by algorithm, and then compare the result with db password.
@@ -213,6 +213,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
+    // Will be injected, @AutoWired in AuthController
     public AuthenticationManager getAuthenticationManager() throws Exception {
         return authenticationManager();
     }
@@ -223,6 +224,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
      * e.g. /api/v1/login is allowed without authentication and all other endpoints require.
      * 2. since use jwt, never create a session
      * 3. disable csrf
+     * 4. cors
+     * 5. auth exception handler
+     * 6. auth filter
      */
     protected void configure(HttpSecurity http) throws Exception {
         http.csrf().disable().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -235,23 +239,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 }
 ```
 
-JwtServiceImpl.java: generate token by username, validate token for further requests.
+JwtService.java: generate token by username, validate token for further requests.
 
 ```java
-package com.guanghui.springbootreact.service;
-
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
-import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Service;
-
-import javax.servlet.http.HttpServletRequest;
-import java.security.Key;
-import java.util.Date;
 
 @Service
-public class JwtServiceImpl {
+public class JwtService {
     static final Integer EXPIRATION_TIME = 86400000; // 1 DAY in ms
 
     static final String PREFIX = "Bearer";
@@ -262,7 +255,7 @@ public class JwtServiceImpl {
     /**
      * generate signed JWT token based on username
      *
-     * @param username
+     * @param username given username
      * @return token
      */
     public String generateToken(String username) {
@@ -276,16 +269,17 @@ public class JwtServiceImpl {
     /**
      * verify a token and get username from request Authorization header
      *
-     * @param request
+     * @param request HttpRequest
      * @return username
      */
-    public String getAuthUser(HttpServletRequest request) {
+    public String validateTokenAndReturnUser(HttpServletRequest request) {
         String token = request.getHeader(HttpHeaders.AUTHORIZATION);
 
         if (token != null) {
             String user = Jwts.parserBuilder()
                     .setSigningKey(key).build()
-                    .parseClaimsJwt(token.replace(PREFIX, ""))
+                    // NOT.parseClaimsJwt()!!!
+                    .parseClaimsJws(token.replace(PREFIX, ""))
                     .getBody()
                     .getSubject();
 
@@ -300,27 +294,14 @@ public class JwtServiceImpl {
 AuthController.java: login success will respond token in Authorization header.
 
 ```java
-package com.guanghui.springbootreact.controller;
-
-import com.guanghui.springbootreact.model.AccountCredentials;
-import com.guanghui.springbootreact.service.JwtServiceImpl;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class AuthController {
     @Autowired
-    AuthenticationManager authenticationManager;  // config it at SecurityConfig
+    private AuthenticationManager authenticationManager;  // config it at SecurityConfig
 
     @Autowired
-    private JwtServiceImpl jwtService;
+    private JwtService jwtService;
 
     @PostMapping("/api/v1/login")
     public ResponseEntity<?> getToken(@RequestBody AccountCredentials credentials) {
@@ -346,5 +327,140 @@ Let's verify from postman: http://localhost:8081/api/v1/login with `{"username":
 
 Since we have logged in, now we move on to handle authentication in the incoming requests which should send
 Authorization header, where the token should be verified. In the authentication process, we are using filters that allow
-us to perform some operations before a request goes to the controller or before a response is sent to a client. 
+us to perform some operations before a request goes to the controller or before a response is sent to a client.
 
+1. Use a filter to authenticate all other incoming requests.
+
+    ```java 
+    @Component
+    public class AuthenticationFilter extends OncePerRequestFilter {
+        @Autowired
+        private JwtService jwtService;
+    
+        @Override
+        /*
+         * if jwt is validated, set authentication and pass thru to controllers, etc
+         */
+        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+            // A signed JWT is known as a JWS (JSON Web Signature)
+            String jwt = request.getHeader(HttpHeaders.AUTHORIZATION);
+    
+            if (jwt != null) {
+                // verify token and get username
+                String username = jwtService.validateTokenAndReturnUser(request);
+    
+                // authenticate
+                Authentication authentication = new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
+    
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
+    
+            filterChain.doFilter(request, response);
+        }
+    }
+    ```
+
+2. Next, we have to add our filter class to the Spring Security configuration. Open the
+   SecurityConfig class and inject the AuthenticationFilter class that
+   we just implemented, as follows:
+
+    ```java
+    @Autowired
+    private AuthenticationFilter authenticationFilter;
+    ```
+
+3. modify the configure method in the SecurityConfig class and add the
+   following lines of code:
+
+    ```diff
+    protected void configure(HttpSecurity http) throws Exception {
+        http.csrf().disable().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                .authorizeHttpRequests()
+                .antMatchers(HttpMethod.POST, "/api/v1/login")
+                .permitAll()
+                .anyRequest().authenticated()
+    +            .and()
+    +            .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class);
+    }
+    ```
+
+   At this moment, `/api/v1/login` with correct credentials should respond the Authorization token.
+
+4. If login with wrong password, 403 forbidden status returns without further clarification. Implement
+   AuthenticationEntryPoint. It will respond 401.
+
+    ```java
+    /**
+     * 401 unauthorized response
+     */
+    @Component
+    public class AuthEntryPoint implements AuthenticationEntryPoint {
+        @Override
+        public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            
+            PrintWriter writer = response.getWriter();
+            writer.println("Error: " + authException.getMessage());
+        }
+    }
+    ```
+
+5. Config Spring security for exception handling using the above handler:
+
+    ```java
+    @Autowired
+    private AuthEntryPoint exceptionHandler;
+    ```
+
+   Then modify configure method:
+
+    ```diff
+    protected void configure(HttpSecurity http) throws Exception {
+        http.csrf().disable().cors().and()
+                .sessionManagement()
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
+                .authorizeRequests()
+                .antMatchers(HttpMethod.POST, "/api/v1/login").permitAll()
+                .anyRequest().authenticated().and()
+    +            .exceptionHandling()
+    +            .authenticationEntryPoint(exceptionHandler).and()
+                .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class);
+    }
+    ```
+
+---
+
+Add CORS to SecurityConfig.java:
+
+```java
+@Bean
+CorsConfigurationSource corsConfigurationSource(){
+        UrlBasedCorsConfigurationSource source=new UrlBasedCorsConfigurationSource();
+        CorsConfiguration config=new CorsConfiguration();
+        config.setAllowedOrigins(Arrays.asList("*","http://localhost:3000"));
+        config.setAllowedMethods(Arrays.asList("*"));
+        config.setAllowedHeaders(Arrays.asList("*"));
+        config.setAllowCredentials(false);
+        config.applyPermitDefaultValues();
+
+        source.registerCorsConfiguration("/**",config);
+        return source;
+        }
+```
+
+```diff
+protected void configure(HttpSecurity http) throws Exception {
+    http.csrf().disable()
++            .cors().and()
+            .sessionManagement()
+            .sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
+            .authorizeRequests()
+            .antMatchers(HttpMethod.POST, "/api/v1/login").permitAll()
+            .anyRequest().authenticated().and()
+            .exceptionHandling()
+            .authenticationEntryPoint(exceptionHandler).and()
+            .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class);
+}
+```
