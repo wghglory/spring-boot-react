@@ -3,15 +3,12 @@ package com.guanghui.springbootreact.security;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -53,15 +50,20 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
      * 6. auth filter
      */
     protected void configure(HttpSecurity http) throws Exception {
+        // Use this for temporary test with Frontend
         http.csrf().disable().cors().and()
-                .sessionManagement()
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-                .authorizeRequests()
-                .antMatchers(HttpMethod.POST, "/api/v1/login").permitAll()
-                .anyRequest().authenticated().and()
-                .exceptionHandling()
-                .authenticationEntryPoint(exceptionHandler).and()
-                .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .authorizeRequests().anyRequest().permitAll();
+
+        // uncomment back below after integrating with FE
+//        http.csrf().disable().cors().and()
+//                .sessionManagement()
+//                .sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
+//                .authorizeRequests()
+//                .antMatchers(HttpMethod.POST, "/api/v1/login").permitAll()
+//                .anyRequest().authenticated().and()
+//                .exceptionHandling()
+//                .authenticationEntryPoint(exceptionHandler).and()
+//                .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class);
     }
 
 
