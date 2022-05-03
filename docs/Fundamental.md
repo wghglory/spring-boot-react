@@ -471,14 +471,10 @@ By default, Spring Boot uses an in-memory database for testing. We are now using
 testing only, but H2 can also be used for testing if we add the following dependency to the pom.xml ile. he scope deines
 that the H2 database will only be used for running tests; otherwise, the application will use the MariaDB database:
 
-Way 1:
-
 ```groovy
 //    https://blog.csdn.net/zh452647457/article/details/108772045
 testRuntimeOnly 'com.h2database:h2'
 ```
-
-Way 2:
 
 If you also want to use the default database for testing, you can use the `@AutoConfigureTestDatabase` annotation.
 
