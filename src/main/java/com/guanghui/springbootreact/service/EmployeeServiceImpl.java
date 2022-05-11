@@ -32,7 +32,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         List<Employee> employeeEntities = employeeRepository.findAll();
 
         return employeeEntities.stream().map(emp -> new Employee(
-                emp.getId(),
+                emp.getEmployeeId(),
                 emp.getFirstName(),
                 emp.getLastName(),
                 emp.getEmail()

@@ -29,4 +29,8 @@ public class Course {
             inverseJoinColumns = {@JoinColumn(name = "student_id")}
     )
     private Set<Student> students = new HashSet<>();
+
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "teacher_id", referencedColumnName = "teacherId")
+    private Teacher teacher;
 }

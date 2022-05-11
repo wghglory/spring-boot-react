@@ -50,6 +50,7 @@ public class SpringBootReactApplication implements CommandLineRunner {
         User user1 = User.builder().username("derekw").password("$2y$10$aV1hn/tML9Et6EwEjMIC5OYMobdE48LSd1YuscPwvMwUIfTo75fQq").role("ADMIN").build();
         // password: what?
         User user2 = User.builder().username("irisy").password("$2y$10$iwBVpCitr9d71j3bBbpUgO260sCJ4hnP1YRaN/gcm6Imc0Vcs5Pby").role("USER").build();
+        // 3 users: guanghuiw 123123, derekw ca$hc0w, irisy what?
 
         userRepository.save(user1);
         userRepository.save(user2);
